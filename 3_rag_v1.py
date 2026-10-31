@@ -1,16 +1,16 @@
-# pip install -U langchain langchain-openai langchain-community faiss-cpu pypdf python-dotenv
+# pip install -U langchain langchain-google-genai langchain-community faiss-cpu pypdf python-dotenv
 
 import os
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough, RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 
-load_dotenv()  # expects OPENAI_API_KEY in .env
+load_dotenv()  # expects GOOGLE_API_KEY in .env
 
 PDF_PATH = "islr.pdf"  # <-- change to your PDF filename
 
@@ -23,7 +23,7 @@ splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
 splits = splitter.split_documents(docs)
 
 # 3) Embed + index
-emb = OpenAIEmbeddings(model="text-embedding-3-small")
+emb = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 vs = FAISS.from_documents(splits, emb)
 retriever = vs.as_retriever(search_type="similarity", search_kwargs={"k": 4})
 
@@ -34,8 +34,9 @@ prompt = ChatPromptTemplate.from_messages([
 ])
 
 # 5) Chain
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-def format_docs(docs): return "\n\n".join(d.page_content for d in docs)
+llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", temperature=0)
+def format_docs(docs): 
+    return "\n\n".join(d.page_content for d in docs)
 
 parallel = RunnableParallel({
     "context": retriever | RunnableLambda(format_docs),
